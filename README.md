@@ -25,7 +25,7 @@ pip install -r requirements.txt
 python -m src.main
 ```
 
-Lưu ý set lại GEMINII_API_KEY trong file text_chunker.py
+Lưu ý set lại GEMINII_API_KEY trong file .env
 
 Bạn sẽ thấy menu với 5 tùy chọn:
 

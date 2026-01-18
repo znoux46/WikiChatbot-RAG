@@ -7,8 +7,11 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from src.chunking.text_chunker import HybridSectionChunker
+import os
+from dotenv import load_dotenv
 
-GEMINI_API_KEY = "AIzaSyBNttcNw7KFGbXGgNWz3oEH1wAFiJSbqIM"
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
 class RAGChat:

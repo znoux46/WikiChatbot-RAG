@@ -8,8 +8,13 @@ import os
 import shutil
 import pickle
 
-EMBEDDING_MODEL_NAME = "models/text-embedding-004"
-GEMINII_API_KEY = "AIzaSyBNttcNw7KFGbXGgNWz3oEH1wAFiJSbqIM"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME")
+
 
 class HybridSectionChunker:
     
@@ -38,7 +43,7 @@ class HybridSectionChunker:
         
         self.embeddings = GoogleGenerativeAIEmbeddings(
             model=EMBEDDING_MODEL_NAME,
-            api_key=GEMINII_API_KEY
+            api_key=GEMINI_API_KEY
         )
     
     def chunk_and_save_to_db(self, md_file_path, collection_name="knowledge_base", 
@@ -94,7 +99,7 @@ class HybridSectionChunker:
         
         # Step 3: Lưu vào Chroma (cho semantic search)
         print(f"\n💾 Bước 3: Lưu vào Chroma DB...")
-        vectorstore = Chroma.from_documents(
+        Chroma.from_documents(
             documents=final_chunks,
             embedding=self.embeddings,
             collection_name=collection_name,
