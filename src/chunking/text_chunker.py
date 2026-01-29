@@ -3,7 +3,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
-from langchain_classic.retrievers import EnsembleRetriever
+from langchain.retrievers import EnsembleRetriever
 import os
 import shutil
 import pickle
