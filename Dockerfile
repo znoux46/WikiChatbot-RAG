@@ -25,9 +25,10 @@ RUN mkdir -p /app/data/chroma_db
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Health check (Railway will handle this, so we can remove or make it dynamic)
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Railway sets PORT environment variable, default to 8000 if not set
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
