@@ -14,6 +14,8 @@ rank-bm25==0.2.2
 # Web scraping and parsing
 beautifulsoup4==4.12.3
 requests==2.31.0
+wikipedia==1.4.0
+markitdown==0.0.1a2
 
 # Utilities
 python-dotenv==1.0.0
