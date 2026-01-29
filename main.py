@@ -165,13 +165,37 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with detailed status"""
+    import os.path
+    
     gemini_key = os.getenv("GEMINI_API_KEY")
+    vector_db_path = "data/chroma_db"
+    chunks_file = os.path.join(vector_db_path, "knowledge_base_chunks.pkl")
+    
+    # Check vector database
+    vector_db_exists = os.path.exists(vector_db_path)
+    chroma_db_exists = os.path.exists(os.path.join(vector_db_path, "chroma.sqlite3"))
+    chunks_file_exists = os.path.exists(chunks_file)
+    
+    # Overall health status
+    is_healthy = (
+        bool(gemini_key and gemini_key != "your_gemini_api_key_here") and
+        vector_db_exists and
+        chroma_db_exists and
+        chunks_file_exists
+    )
+    
     return {
-        "status": "healthy",
+        "status": "healthy" if is_healthy else "unhealthy",
         "service": "WikiChatbot RAG API",
-        "gemini_api_configured": bool(gemini_key and gemini_key != "your_gemini_api_key_here"),
-        "vector_db_path": "data/chroma_db"
+        "checks": {
+            "gemini_api_configured": bool(gemini_key and gemini_key != "your_gemini_api_key_here"),
+            "vector_db_directory_exists": vector_db_exists,
+            "chroma_db_exists": chroma_db_exists,
+            "chunks_file_exists": chunks_file_exists
+        },
+        "vector_db_path": vector_db_path,
+        "message": "All systems operational" if is_healthy else "Some components are missing. Please initialize the database."
     }
 
 @app.post("/chat", response_model=ChatResponse)
@@ -195,12 +219,22 @@ async def chat(request: ChatRequest):
             status="success"
         )
     except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=404, 
-            detail="Vector database not found. Please run the data preparation and chunking process first."
+        error_detail = (
+            "Vector database not found. "
+            "Please initialize the database first by running: "
+            "POST /initialize or running the init_db.py script. "
+            f"Details: {str(e)}"
         )
+        print(f"❌ FileNotFoundError: {error_detail}")
+        raise HTTPException(status_code=404, detail=error_detail)
+    except RuntimeError as e:
+        error_detail = f"Runtime error: {str(e)}"
+        print(f"❌ RuntimeError: {error_detail}")
+        raise HTTPException(status_code=500, detail=error_detail)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        error_detail = f"Unexpected error: {str(e)}"
+        print(f"❌ Exception: {error_detail}")
+        raise HTTPException(status_code=500, detail=error_detail)
 
 @app.get("/info")
 async def info():
