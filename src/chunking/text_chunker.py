@@ -126,41 +126,82 @@ class HybridSectionChunker:
         print(f"🎯 Top K: {k}")
         print(f"⚖️ Weights: BM25={bm25_weight}, Semantic={semantic_weight}")
         
-        # Load vectorstore
-        print(f"\n📂 Đang load vectorstore...")
-        vectorstore = Chroma(
-            collection_name=collection_name,
-            persist_directory=persist_directory,
-            embedding_function=self.embeddings
-        )
+        # Kiểm tra persist_directory tồn tại
+        if not os.path.exists(persist_directory):
+            error_msg = f"❌ Vector database không tồn tại tại: {persist_directory}"
+            print(error_msg)
+            raise FileNotFoundError(error_msg)
         
-        # Load chunks cho BM25
+        # Load vectorstore với error handling
+        print(f"\n📂 Đang load vectorstore...")
+        try:
+            vectorstore = Chroma(
+                collection_name=collection_name,
+                persist_directory=persist_directory,
+                embedding_function=self.embeddings
+            )
+            print(f"✅ Đã load vectorstore thành công")
+        except Exception as e:
+            error_msg = f"❌ Lỗi khi load vectorstore: {str(e)}"
+            print(error_msg)
+            raise RuntimeError(error_msg)
+        
+        # Load chunks cho BM25 với error handling
         chunks_file = os.path.join(persist_directory, f"{collection_name}_chunks.pkl")
-        with open(chunks_file, 'rb') as f:
-            chunks = pickle.load(f)
-        print(f"📂 Đã load {len(chunks)} chunks")
+        
+        if not os.path.exists(chunks_file):
+            error_msg = f"❌ Chunks file không tồn tại: {chunks_file}"
+            print(error_msg)
+            raise FileNotFoundError(error_msg)
+        
+        try:
+            with open(chunks_file, 'rb') as f:
+                chunks = pickle.load(f)
+            print(f"📂 Đã load {len(chunks)} chunks")
+        except Exception as e:
+            error_msg = f"❌ Lỗi khi load chunks file: {str(e)}"
+            print(error_msg)
+            raise RuntimeError(error_msg)
         
         # Tạo BM25 retriever
         print(f"🔤 Khởi tạo BM25 retriever...")
-        bm25_retriever = BM25Retriever.from_documents(chunks)
-        bm25_retriever.k = k
+        try:
+            bm25_retriever = BM25Retriever.from_documents(chunks)
+            bm25_retriever.k = k
+        except Exception as e:
+            error_msg = f"❌ Lỗi khi tạo BM25 retriever: {str(e)}"
+            print(error_msg)
+            raise RuntimeError(error_msg)
         
         # Tạo Semantic retriever
         print(f"🧠 Khởi tạo Semantic retriever...")
-        semantic_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
+        try:
+            semantic_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
+        except Exception as e:
+            error_msg = f"❌ Lỗi khi tạo Semantic retriever: {str(e)}"
+            print(error_msg)
+            raise RuntimeError(error_msg)
         
         # Ensemble retriever
         print(f"🔀 Tạo Ensemble retriever...")
-        hybrid_retriever = EnsembleRetriever(
-            retrievers=[bm25_retriever, semantic_retriever],
-            weights=[bm25_weight, semantic_weight]
-        )
+        try:
+            hybrid_retriever = EnsembleRetriever(
+                retrievers=[bm25_retriever, semantic_retriever],
+                weights=[bm25_weight, semantic_weight]
+            )
+        except Exception as e:
+            error_msg = f"❌ Lỗi khi tạo Ensemble retriever: {str(e)}"
+            print(error_msg)
+            raise RuntimeError(error_msg)
         
         # Query
         print(f"\n🔎 Đang search...")
-        results = hybrid_retriever.invoke(query)
-        
-        print(f"✅ Tìm thấy {len(results)} kết quả!")
-        
-        return results[:k]
+        try:
+            results = hybrid_retriever.invoke(query)
+            print(f"✅ Tìm thấy {len(results)} kết quả!")
+            return results[:k]
+        except Exception as e:
+            error_msg = f"❌ Lỗi khi search: {str(e)}"
+            print(error_msg)
+            raise RuntimeError(error_msg)
 

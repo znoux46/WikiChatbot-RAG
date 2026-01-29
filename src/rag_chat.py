@@ -88,56 +88,82 @@ TRẢ LỜI:"""),
     def retrieve(self, query):
         print(f"\n🔍 Đang retrieve context cho: '{query}'")
         
-        results = self.chunker.query_with_hybrid_search(
-            query=query,
-            collection_name=self.collection_name,
-            persist_directory=self.persist_directory,
-            k=self.top_k,
-            bm25_weight=self.bm25_weight,
-            semantic_weight=self.semantic_weight
-        )
-        
-        print(f"📦 Đã retrieve {len(results)} chunks")
-        return results
+        try:
+            results = self.chunker.query_with_hybrid_search(
+                query=query,
+                collection_name=self.collection_name,
+                persist_directory=self.persist_directory,
+                k=self.top_k,
+                bm25_weight=self.bm25_weight,
+                semantic_weight=self.semantic_weight
+            )
+            
+            print(f"📦 Đã retrieve {len(results)} chunks")
+            return results
+        except FileNotFoundError as e:
+            print(f"❌ Lỗi: {str(e)}")
+            raise FileNotFoundError(
+                f"Vector database chưa được khởi tạo. "
+                f"Vui lòng chạy script khởi tạo database trước. "
+                f"Chi tiết: {str(e)}"
+            )
+        except Exception as e:
+            print(f"❌ Lỗi khi retrieve: {str(e)}")
+            raise RuntimeError(f"Lỗi khi retrieve context: {str(e)}")
     
     def chat(self, question, verbose=False):
         
-        # Retrieve context
-        docs = self.retrieve(question)
-        
-        # Kiểm tra có docs không
-        if not docs:
-            return "Xin lỗi, tôi không tìm thấy thông tin liên quan trong tài liệu."
-        
-        # In context nếu verbose
-        if verbose:
-            print(f"\n{'='*70}")
-            print(f"CONTEXT ĐƯỢC RETRIEVE:")
-            print(f"{'='*70}")
-            for i, doc in enumerate(docs, 1):
-                print(f"\n📄 Chunk {i}:")
-                print(f"   Headers: {doc.metadata.get('h1', '')} / {doc.metadata.get('h2', '')}")
-                print(f"   Content: {doc.page_content[:200]}...")
-                print(f"   {'-'*70}")
-        
-        # Format context
-        context = self._format_docs(docs)
-        
-        # Đảm bảo context và question không rỗng
-        if not context or not context.strip():
-            return "Xin lỗi, không thể tạo context từ tài liệu."
-        
+        # Validate question
         if not question or not question.strip():
             return "Vui lòng nhập câu hỏi hợp lệ."
         
-        # Generate answer
-        print(f"\n💬 Đang generate câu trả lời...")
-        answer = self.rag_chain.invoke({
-            "docs": docs,
-            "question": question
-        })
-        
-        return answer
+        try:
+            # Retrieve context
+            docs = self.retrieve(question)
+            
+            # Kiểm tra có docs không
+            if not docs:
+                return "Xin lỗi, tôi không tìm thấy thông tin liên quan trong tài liệu."
+            
+            # In context nếu verbose
+            if verbose:
+                print(f"\n{'='*70}")
+                print(f"CONTEXT ĐƯỢC RETRIEVE:")
+                print(f"{'='*70}")
+                for i, doc in enumerate(docs, 1):
+                    print(f"\n📄 Chunk {i}:")
+                    print(f"   Headers: {doc.metadata.get('h1', '')} / {doc.metadata.get('h2', '')}")
+                    print(f"   Content: {doc.page_content[:200]}...")
+                    print(f"   {'-'*70}")
+            
+            # Format context
+            context = self._format_docs(docs)
+            
+            # Đảm bảo context không rỗng
+            if not context or not context.strip():
+                return "Xin lỗi, không thể tạo context từ tài liệu."
+            
+            # Generate answer
+            print(f"\n💬 Đang generate câu trả lời...")
+            answer = self.rag_chain.invoke({
+                "docs": docs,
+                "question": question
+            })
+            
+            return answer
+            
+        except FileNotFoundError as e:
+            error_msg = (
+                "Vector database chưa được khởi tạo. "
+                "Vui lòng chạy script khởi tạo database trước khi sử dụng chatbot."
+            )
+            print(f"❌ {error_msg}")
+            return error_msg
+            
+        except Exception as e:
+            error_msg = f"Đã xảy ra lỗi khi xử lý câu hỏi: {str(e)}"
+            print(f"❌ {error_msg}")
+            return error_msg
 
 
 
